@@ -99,7 +99,17 @@ EatStreetUser user = new Jurl()
 
 ```
 
-### Sessions / Preserving Cookies
+### Asynchronous Usage
+Jurl uses Java `Future`s to make requests asynchronously.
+```
+Future<Jurl> asyncJurl = new Jurl()
+        .url("https://api.spotify.com/v1/artists/147jymD5t0TCXW0DbaXry0")
+        .goAsync();
+        
+SpotifyArtist artist = asyncJurl.get().getResponseJsonObject(SpotifyArtist.class);
+```
+
+### Preserving Cookies / Session
 After a request done, calling `newWithCookies()` will return a new `Jurl` instance with request cookies pre-filled, to preserve session.
 
 ## Notes
