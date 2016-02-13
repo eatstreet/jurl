@@ -3,7 +3,7 @@ Jurl is a modern Java http client designed to make API integrations simpler.
 
 ## Why
 
-The top StackOverflow answer to "How to send HTTP request in java" is terrifying: http://stackoverflow.com/a/1359700/2340222.
+The top StackOverflow answer to "How to make an HTTP request in Java" is terrifying: http://stackoverflow.com/a/1359700/2340222.
 
 ## Examples
 ### `GET`
