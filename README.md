@@ -103,5 +103,6 @@ EatStreetUser user = new Jurl()
 After a request done, calling `newWithCookies()` will return a new `Jurl` instance with request cookies pre-filled, to preserve session.
 
 ## Notes
-- Only supports UTF-8 character request and response bodies
-- `param()` calls for POST requests will be x-www-form-urlencoded in the body
+- Only UTF-8 encoded character request and response bodies are supported.
+- `param()` calls for POST requests will be x-www-form-urlencoded in the body.
+- `bodyJson()` calls will also set the `Content-Type` header to `application/json`.
