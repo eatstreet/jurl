@@ -13,7 +13,7 @@ String html = new Jurl()
 ```
 
 ### JSON `GET`
-Jurl uses Jackson to easily parse json responses
+Jurl uses Jackson to parse json responses.
 ```java
 @JsonIgnoreProperties(ignoreUnknown = true)
 public static class SpotifyArtist {
@@ -56,7 +56,7 @@ try {
 }
 ```
 
-Otherwise, you can always check the response code use `getResponseCode()`
+Otherwise, you can always check the response code use `getResponseCode()`.
 ```java
 Jurl jurl3 = new Jurl()
         .url("https://api.spotify.com/v1/artists/not-an-artist")
