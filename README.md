@@ -4,9 +4,10 @@ An Easy Java Http Client
 ## Examples
 ### A `GET`
 ```java
-String responseBody = new Jurl()
-        .url("https://maps.googleapis.com/maps/api/geocode/json")
-        .param("address", "131 West Wilson Street, Madison WI")
+String html = new Jurl()
+        .url("https://www.google.com/")
+        // force google to display in spanish
+        .param("hl", "es")
         .go()
         .getResponse();
 ```
@@ -25,6 +26,18 @@ SpotifyArtist artist = new Jurl()
         .url("https://api.spotify.com/v1/artists/147jymD5t0TCXW0DbaXry0")
         .go()
         .getResponseJsonObject(SpotifyArtist.class);
+```
+
+### A `Map<String, Object>` JSON `GET`
+It may be expedient to parse JSON responses into `Map<String, Object>`.
+
+```java
+
+Map<String, Object> geocodeResults = new Jurl()
+        .url("https://maps.googleapis.com/maps/api/geocode/json")
+        .param("address", "131 West Wilson Street, Madison WI")
+        .go()
+        .getResponseJsonObject(new TypeReference<Map<String, Object>>() {});
 ```
 
 ### Error Handling
@@ -75,3 +88,6 @@ EatStreetUser user = new Jurl()
 ### Sessions / Preserving Cookies
 After a request done, calling `newWithCookies()` will return a new `Jurl` instance with request cookies pre-filled, to preserve session.
 
+## Notes
+- Only supports UTF-8 character request and response bodies
+- `param()` calls for POST requests will be x-www-form-urlencoded in the body
