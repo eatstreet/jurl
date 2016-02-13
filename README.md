@@ -2,7 +2,7 @@
 An Easy Java Http Client
 
 ## Examples
-### A `GET`
+### `GET`
 ```java
 String html = new Jurl()
         .url("https://www.google.com/")
@@ -12,7 +12,7 @@ String html = new Jurl()
         .getResponse();
 ```
 
-### A JSON `GET`
+### JSON `GET`
 Jurl uses Jackson to easily parse json responses
 ```java
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -28,7 +28,7 @@ SpotifyArtist artist = new Jurl()
         .getResponseJsonObject(SpotifyArtist.class);
 ```
 
-### A `Map<String, Object>` JSON `GET`
+### `Map<String, Object>` JSON `GET`
 It may be expedient to parse JSON responses into `Map<String, Object>`.
 
 ```java
@@ -69,7 +69,7 @@ if (jurl.getResponseCode() == 200) {
 }
 ```
 
-### A JSON `POST`
+### JSON `POST`
 Jurl also uses Jackson to serialize JSON request bodies.  Note also the calls to `.method()` to designate "POST" and `.header()` to set request headers.
 
 ```java
