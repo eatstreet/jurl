@@ -51,7 +51,8 @@ try {
             .go()
             .getResponseJsonObject(SpotifyArtist.class);
 } catch (JurlHttpStatusCodeException e) {
-    System.out.println(e.getJurlInstance().getResponseCode());
+    Jurl jurlInstance = e.getJurlInstance();
+    // ...
 }
 ```
 
