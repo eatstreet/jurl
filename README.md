@@ -1,5 +1,5 @@
 # Jurl
-An Easy Java Http Client
+Jurl is a modern Java http client designed to make API integrations simpler.
 
 ## Examples
 ### `GET`
