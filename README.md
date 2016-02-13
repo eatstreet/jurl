@@ -55,6 +55,19 @@ try {
 }
 ```
 
+Otherwise, you can always check the response code use `getResponseCode()`
+```java
+Jurl jurl3 = new Jurl()
+        .url("https://api.spotify.com/v1/artists/not-an-artist")
+        .go();
+
+if (jurl.getResponseCode() == 200) {
+    SpotifyArtist artist = jurl.getResponseJsonObject(SpotifyArtist.class);
+} else {
+    // ...
+}
+```
+
 ### A JSON `POST`
 Jurl also uses Jackson to serialize JSON request bodies.  Note also the calls to `.method()` to designate "POST" and `.header()` to set request headers.
 
