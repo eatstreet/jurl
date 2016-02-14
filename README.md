@@ -60,7 +60,7 @@ try {
 }
 ```
 
-Otherwise, you can always check the response code use `getResponseCode()`.
+Otherwise, you can always check the response code using `getResponseCode()`.
 ```java
 Jurl jurl3 = new Jurl()
         .url("https://api.spotify.com/v1/artists/not-an-artist")
@@ -105,7 +105,7 @@ EatStreetUser user = new Jurl()
 
 ### Asynchronous Usage
 Jurl uses Java `Future`s to make requests asynchronously.
-```
+```java
 Future<Jurl> asyncJurl = new Jurl()
         .url("https://api.spotify.com/v1/artists/147jymD5t0TCXW0DbaXry0")
         .goAsync();
@@ -114,7 +114,7 @@ SpotifyArtist artist = asyncJurl.get().getResponseJsonObject(SpotifyArtist.class
 ```
 
 ### Preserving Cookies / Session
-After a request done, calling `newWithCookies()` will return a new `Jurl` instance with request cookies pre-filled, to preserve session.
+After a request is done, calling `newWithCookies()` will return a new `Jurl` instance with request cookies pre-filled, to preserve session.
 
 ## Notes
 - Only UTF-8 encoded character request and response bodies are supported.
