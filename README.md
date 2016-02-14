@@ -62,7 +62,7 @@ try {
 
 Otherwise, you can always check the response code using `getResponseCode()`.
 ```java
-Jurl jurl3 = new Jurl()
+Jurl jurl = new Jurl()
         .url("https://api.spotify.com/v1/artists/not-an-artist")
         .go();
 
