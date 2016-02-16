@@ -115,6 +115,9 @@ SpotifyArtist artist4 = asyncJurl.get().getResponseJsonObject(SpotifyArtist.clas
 ### Preserving Cookies / Session
 After a request is done, calling `newWithCookies()` will return a new `Jurl` instance with request cookies pre-filled, to preserve session.
 
+### Debugging requests with `curl`
+You can call `.toCurl()` on a `Jurl` instance, it will return a valid unix `curl` command, useful for debugging.
+
 ## Notes
 - Only UTF-8 encoded character request and response bodies are supported.
 - `param()` calls for POST requests will be x-www-form-urlencoded in the body.
