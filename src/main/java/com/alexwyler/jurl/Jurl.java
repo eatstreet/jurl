@@ -6,7 +6,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.CollectionType;
-import com.fasterxml.jackson.xml.XmlMapper;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 import java.io.*;
 import java.net.*;
@@ -28,7 +28,8 @@ public class Jurl {
             .configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
             .configure(JsonParser.Feature.ALLOW_NUMERIC_LEADING_ZEROS, true);
 
-    public static final XmlMapper DEFAULT_XML_MAPPER = (XmlMapper) new XmlMapper();
+    public static final XmlMapper DEFAULT_XML_MAPPER = (XmlMapper) new XmlMapper()
+            .configure(DeserializationFeature.USE_LONG_FOR_INTS, true);
 
     public static ExecutorService backgroundExecutor = Executors.newFixedThreadPool(100);
 
@@ -82,7 +83,6 @@ public class Jurl {
         this.throwOnNon200 = throwOnNon200;
         return this;
     }
-
 
     public Jurl url(String urlStr) {
         try {
@@ -245,6 +245,10 @@ public class Jurl {
         return queryString;
     }
 
+    private boolean hasGone() {
+        return gone;
+    }
+
     private void assertGone() {
         if (!gone) {
             throw new RuntimeException("Must call go() first.");
@@ -346,13 +350,20 @@ public class Jurl {
         return responseCode;
     }
 
+    protected void onBeforeGo() {
+    }
+
     protected void onBeforeAttempt() {
     }
 
     protected void onAfterAttempt() {
     }
 
+    protected void onAfterGo() {
+    }
+
     public Jurl go() {
+        onBeforeGo();
         for (int i = 1; i <= maxAttempts; i++) {
             onBeforeAttempt();
             try {
@@ -457,6 +468,7 @@ public class Jurl {
             }
         }
         gone = true;
+        onAfterGo();
         if ((responseCode < 200 || responseCode >= 300) && throwOnNon200) {
             throw new JurlHttpStatusCodeException(this);
         }
