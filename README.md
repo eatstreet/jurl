@@ -10,8 +10,7 @@ The top StackOverflow answer to "How to make an HTTP request in Java" is terrify
 ```java
 String html = new Jurl()
         .url("https://www.google.com/")
-        // force google to display in spanish
-        .param("hl", "es")
+        .param("hl", "es") // spanish!
         .go()
         .getResponseBody();
 ```
