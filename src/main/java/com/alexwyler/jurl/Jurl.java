@@ -20,6 +20,7 @@ public class Jurl {
 
     public static final String GET = "GET";
     public static final String POST = "POST";
+    public static final String PUT = "PUT";
 
     public static ObjectMapper DEFAULT_OBJECT_MAPPER = new ObjectMapper()
             .configure(DeserializationFeature.USE_LONG_FOR_INTS, true)
@@ -97,6 +98,10 @@ public class Jurl {
         return this;
     }
 
+    public String getUrl() {
+        return this.url.toString();
+    }
+
     public Jurl method(String method) {
         this.method = method;
         return this;
@@ -158,6 +163,16 @@ public class Jurl {
         return this.requestCookies;
     }
 
+    public List<String> getRequestCookies(String cookieName) {
+        List<String> requestCookies = this.requestCookies.get(cookieName);
+        return requestCookies == null ? new ArrayList<>() : requestCookies;
+    }
+
+    public String getRequestCookie(String cookieName) {
+        List<String> requestCookies = this.requestCookies.get(cookieName);
+        return requestCookies == null ? null : requestCookies.get(0);
+    }
+
     public Map<String, List<String>> getRequestHeaders() {
         return requestHeaders;
     }
@@ -178,6 +193,10 @@ public class Jurl {
         } else {
             return headers.get(0);
         }
+    }
+
+    public ObjectMapper getObjectMapper() {
+        return jacksonObjectMapper;
     }
 
     public String getContentType() {
@@ -224,25 +243,33 @@ public class Jurl {
     }
 
     protected String getQueryString() {
-        String queryString = "";
+        StringBuilder queryString = new StringBuilder();
         for (Map.Entry<String, List<String>> entry : parameters.entrySet()) {
             if (entry.getKey() == null) {
                 continue;
             }
             for (String value : entry.getValue()) {
-                if (!queryString.isEmpty()) {
-                    queryString += "&";
+                if (queryString.length() > 0) {
+                    queryString.append("&");
                 }
                 try {
-                    queryString += URLEncoder.encode(entry.getKey(), "UTF-8") + "=" +
-                            URLEncoder.encode(value, "UTF-8");
+                    queryString.append(URLEncoder.encode(entry.getKey(), "UTF-8") + "=" +
+                            URLEncoder.encode(value, "UTF-8"));
                 } catch (UnsupportedEncodingException e) {
                     throw new RuntimeException(e);
                 }
             }
         }
 
-        return queryString;
+        return queryString.toString();
+    }
+
+    protected String getEffectiveRequestBody() {
+        if (requestBody == null || (requestBody.isEmpty() && !parameters.isEmpty())) {
+            return getQueryString();
+        } else {
+            return requestBody;
+        }
     }
 
     private boolean hasGone() {
@@ -350,6 +377,49 @@ public class Jurl {
         return responseCode;
     }
 
+    public String toCurl() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("curl");
+
+        sb.append(" -X ");
+        sb.append(getMethod());
+
+        if (followRedirects) {
+            sb.append(" -L");
+        }
+
+        if (!getRequestCookies().isEmpty()) {
+            sb.append(" --cookie ");
+            sb.append(String.format("\"%s\"", getCookieString()));
+        }
+
+        Map<String, List<String>> headers = getRequestHeaders();
+        if (!headers.isEmpty()) {
+            for (String headerName : headers.keySet()) {
+                for (String headerValue : headers.get(headerName)) {
+                    sb.append(" -H ");
+                    sb.append(String.format("\"%s: %s\"", headerName, headerValue));
+                }
+            }
+        }
+
+        if (POST.equals(method) || PUT.equals(method)) {
+            String body = getEffectiveRequestBody();
+            if (body != null && !body.equals("")) {
+                sb.append(String.format(" --data '%s'", body));
+            }
+
+            if (getRequestBody() != null) {
+                sb.append(String.format(" '%s'", getUrlWithParams()));
+            } else {
+                sb.append(String.format(" '%s'", getUrl()));
+            }
+        } else {
+            sb.append(String.format(" '%s'", getUrlWithParams()));
+        }
+        return sb.toString();
+    }
+
     protected void onBeforeGo() {
     }
 
@@ -360,6 +430,19 @@ public class Jurl {
     }
 
     protected void onAfterGo() {
+    }
+
+    protected String getCookieString() {
+        StringBuilder cookieString = new StringBuilder();
+        for (Map.Entry<String, List<String>> entry : requestCookies.entrySet()) {
+            for (String cookieValue : entry.getValue()) {
+                if (cookieString.length() > 0) {
+                    cookieString.append(";");
+                }
+                cookieString.append(entry.getKey() + '=' + cookieValue);
+            }
+        }
+        return cookieString.toString();
     }
 
     public Jurl go() {
@@ -383,29 +466,18 @@ public class Jurl {
                 }
 
                 if (!requestCookies.isEmpty()) {
-                    String cookieString = "";
-                    for (Map.Entry<String, List<String>> entry : requestCookies.entrySet()) {
-                        for (String cookieValue : entry.getValue()) {
-                            if (cookieString.length() > 0) {
-                                cookieString += "; ";
-                            }
-                            cookieString += entry.getKey() + '=' + cookieValue;
-                        }
-                    }
-                    connection.setRequestProperty("Cookie", cookieString);
+                    connection.setRequestProperty("Cookie", getCookieString());
                 }
 
-                if (POST.equals(method)) {
+                if (POST.equals(method) || PUT.equals(method)) {
                     connection.setRequestProperty("Content-Length", String.valueOf(getQueryString().length()));
                     connection.setRequestProperty("Connection", "keep-alive");
                     connection.setDoOutput(true);
 
-                    if (requestBody == null || (requestBody.isEmpty() && !parameters.isEmpty())) {
-                        this.body(getQueryString());
-                    }
+                    String body = getEffectiveRequestBody();
                     DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
-                    if (requestBody != null) {
-                        wr.writeBytes(requestBody);
+                    if (body != null && !body.equals("")) {
+                        wr.writeBytes(body);
                     }
                     wr.flush();
                     wr.close();
