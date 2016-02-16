@@ -13,7 +13,7 @@ String html = new Jurl()
         // force google to display in spanish
         .param("hl", "es")
         .go()
-        .getResponse();
+        .getResponseBody();
 ```
 
 ### JSON `GET`
@@ -41,7 +41,7 @@ Map<String, Object> geocodeResults = new Jurl()
         .url("https://maps.googleapis.com/maps/api/geocode/json")
         .param("address", "131 West Wilson Street, Madison WI")
         .go()
-        .getResponseJsonObject(new TypeReference<Map<String, Object>>() {});
+        .getResponseJsonMap();
 ```
 
 ### Error Handling
@@ -49,7 +49,7 @@ If `throwOnNon200(true)` is set, `go()` will throw `JurlHttpStatusCodeException`
 
 ```java
 try {
-    SpotifyArtist artist = new Jurl()
+    SpotifyArtist artist2 = new Jurl()
             .url("https://api.spotify.com/v1/artists/not-an-artist")
             .throwOnNon200(true)
             .go()
@@ -67,7 +67,7 @@ Jurl jurl = new Jurl()
         .go();
 
 if (jurl.getResponseCode() == 200) {
-    SpotifyArtist artist = jurl.getResponseJsonObject(SpotifyArtist.class);
+    SpotifyArtist artist3 = jurl.getResponseJsonObject(SpotifyArtist.class);
 } else {
     // ...
 }
@@ -110,7 +110,7 @@ Future<Jurl> asyncJurl = new Jurl()
         .url("https://api.spotify.com/v1/artists/147jymD5t0TCXW0DbaXry0")
         .goAsync();
         
-SpotifyArtist artist = asyncJurl.get().getResponseJsonObject(SpotifyArtist.class);
+SpotifyArtist artist4 = asyncJurl.get().getResponseJsonObject(SpotifyArtist.class);
 ```
 
 ### Preserving Cookies / Session

@@ -12,5 +12,6 @@ repositories {
 
 dependencies {
     compile 'com.fasterxml.jackson.core:jackson-databind:2.7.1-1'
+    compile 'com.fasterxml:jackson-xml-databind:0.6.2'
     testCompile 'junit:junit:4.11'
 }

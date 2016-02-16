@@ -32,7 +32,7 @@ public class JurlIntegrationTests {
     @Test
     public void testGoodPage() {
         Jurl jurl = new Jurl().url("https://eatstreet.com/").go();
-        Assert.assertTrue(!jurl.getResponse().isEmpty());
+        Assert.assertTrue(!jurl.getResponseBody().isEmpty());
         Assert.assertEquals(200, jurl.getResponseCode());
     }
 
@@ -68,7 +68,7 @@ public class JurlIntegrationTests {
         }
 
         Assert.assertNotNull(thrown);
-        Assert.assertTrue(!thrown.getJurlInstance().getResponse().isEmpty());
+        Assert.assertTrue(!thrown.getJurlInstance().getResponseBody().isEmpty());
         Assert.assertEquals(404, thrown.getJurlInstance().getResponseCode());
         Assert.assertNotNull(thrown.getJurlInstance().getResponseJsonObject(EatStreetApiError.class));
     }
@@ -84,14 +84,14 @@ public class JurlIntegrationTests {
     public void testFollow301() {
         Jurl jurl = new Jurl().url("https://eatstreet.com/madison").go();
         Assert.assertEquals(200, jurl.getResponseCode());
-        Assert.assertTrue(!jurl.getResponse().isEmpty());
+        Assert.assertTrue(!jurl.getResponseBody().isEmpty());
     }
 
     @Test
     public void testAsync() throws ExecutionException, InterruptedException {
         Future<Jurl> future = new Jurl().url("https://eatstreet.com/api/v2/CitiesByState.json").goAsync();
         Jurl jurl = future.get();
-        Assert.assertTrue(!jurl.getResponse().isEmpty());
+        Assert.assertTrue(!jurl.getResponseBody().isEmpty());
         Assert.assertNotNull(jurl.getResponseJsonList(EatStreetState.class));
         Assert.assertEquals(200, jurl.getResponseCode());
         Assert.assertNotNull(jurl.getResponseCookie("JSESSIONID"));
@@ -115,7 +115,7 @@ public class JurlIntegrationTests {
         Assert.assertEquals(401, jurl.getResponseCode());
         Jurl jurl2 = new Jurl().url("https://eatstreet.com/publicapi/v1/restaurant/358/menu").header("X-Access-Token", "__API_EXPLORER_AUTH_KEY__").go();
         Assert.assertEquals(200, jurl2.getResponseCode());
-        Assert.assertTrue(!jurl2.getResponse().isEmpty());
+        Assert.assertTrue(!jurl2.getResponseBody().isEmpty());
     }
 
     @Test

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.CollectionType;
+import com.fasterxml.jackson.xml.XmlMapper;
 
 import java.io.*;
 import java.net.*;
@@ -26,6 +27,9 @@ public class Jurl {
             .configure(JsonParser.Feature.ALLOW_COMMENTS, true)
             .configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
             .configure(JsonParser.Feature.ALLOW_NUMERIC_LEADING_ZEROS, true);
+
+    public static final XmlMapper DEFAULT_XML_MAPPER = (XmlMapper) new XmlMapper();
+
     public static ExecutorService backgroundExecutor = Executors.newFixedThreadPool(100);
 
     public static void setBackgroundExecutor(ExecutorService backgroundExecutor) {
@@ -53,6 +57,7 @@ public class Jurl {
     boolean throwOnNon200 = false;
     boolean followRedirects = true;
     ObjectMapper jacksonObjectMapper = DEFAULT_OBJECT_MAPPER;
+    XmlMapper jacksonXmlMapper = DEFAULT_XML_MAPPER;
 
     private static <T, V> void addToMultiMap(Map<T, List<V>> map, T key, V value) {
         List<V> values = map.get(key);
@@ -148,6 +153,14 @@ public class Jurl {
         return this.requestCookies;
     }
 
+    public Map<String, List<String>> getRequestHeaders() {
+        return requestHeaders;
+    }
+
+    public String getRequestBody() {
+        return requestBody;
+    }
+
     public List<String> getRequestHeaders(String header) {
         List<String> headers = requestHeaders.get(header);
         return headers != null ? headers : new ArrayList<>();
@@ -205,7 +218,7 @@ public class Jurl {
         }
     }
 
-    private String getQueryString() {
+    protected String getQueryString() {
         String queryString = "";
         for (Map.Entry<String, List<String>> entry : parameters.entrySet()) {
             if (entry.getKey() == null) {
@@ -242,6 +255,16 @@ public class Jurl {
         }
     }
 
+    public Map<String, Object> getResponseJsonMap() {
+        assertGone();
+        try {
+            return jacksonObjectMapper.readValue(responseBody, new TypeReference<Map<String, Object>>() {
+            });
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public <S> S getResponseJsonObject(TypeReference<S> type) {
         assertGone();
         try {
@@ -261,7 +284,16 @@ public class Jurl {
         }
     }
 
-    public String getResponse() {
+    public <S> S getResponseXmlObject(Class<S> clazz) {
+        assertGone();
+        try {
+            return jacksonXmlMapper.readValue(responseBody, clazz);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public String getResponseBody() {
         assertGone();
         return responseBody;
     }
