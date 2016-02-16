@@ -53,7 +53,7 @@ public class Jurl {
     int responseCode;
     long timeout = TimeUnit.SECONDS.toMillis(60); // ms
     int maxAttempts = 1;
-    long msBetweenAttempts = 0; // ms
+    long timeBetweenAttempts = 0; // ms
     boolean throwOnNon200 = false;
     boolean followRedirects = true;
     ObjectMapper jacksonObjectMapper = DEFAULT_OBJECT_MAPPER;
@@ -70,6 +70,11 @@ public class Jurl {
 
     public Jurl maxAttempts(int maxAttempts) {
         this.maxAttempts = maxAttempts;
+        return this;
+    }
+
+    public Jurl timeBetweenAttempts(long timeBetweenAttempts) {
+        this.timeBetweenAttempts = timeBetweenAttempts;
         return this;
     }
 
@@ -443,9 +448,9 @@ public class Jurl {
                     throw new RuntimeException(e);
                 }
             }
-            if (msBetweenAttempts > 0) {
+            if (timeBetweenAttempts > 0) {
                 try {
-                    Thread.sleep(msBetweenAttempts);
+                    Thread.sleep(timeBetweenAttempts);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
