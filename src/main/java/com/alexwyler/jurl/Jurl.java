@@ -284,6 +284,9 @@ public class Jurl {
 
     public <S> S getResponseJsonObject(Class<S> clazz) {
         assertGone();
+        if (clazz == null) {
+            return null;
+        }
         try {
             return jacksonObjectMapper.readValue(responseBody, clazz);
         } catch (IOException e) {
@@ -312,6 +315,9 @@ public class Jurl {
 
     public <S> List<S> getResponseJsonList(Class<S> clazz) {
         assertGone();
+        if (clazz == null) {
+            return null;
+        }
         CollectionType listType = jacksonObjectMapper.getTypeFactory().constructCollectionType(List.class, clazz);
         try {
             return jacksonObjectMapper.readValue(responseBody, listType);
@@ -322,6 +328,9 @@ public class Jurl {
 
     public <S> S getResponseXmlObject(Class<S> clazz) {
         assertGone();
+        if (clazz == null) {
+            return null;
+        }
         try {
             return jacksonXmlMapper.readValue(responseBody, clazz);
         } catch (IOException e) {
