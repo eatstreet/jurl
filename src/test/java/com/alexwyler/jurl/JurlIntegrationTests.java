@@ -70,7 +70,7 @@ public class JurlIntegrationTests {
     public void testFailThrow() {
         JurlHttpStatusCodeException thrown = null;
         try {
-            Jurl jurl2 = new Jurl().url("https://eatstreet.com/api/v2/not-an-endpoint");
+            Jurl jurl2 = new Jurl().url("https://eatstreet.com/api/v2/invalid-endpoint");
             jurl2.throwOnNon200(true);
             jurl2.go();
         } catch (JurlHttpStatusCodeException e) {
@@ -133,9 +133,9 @@ public class JurlIntegrationTests {
 
     @Test
     public void testRequestHeaders() {
-        Jurl jurl = new Jurl().url("https://eatstreet.com/publicapi/v1/restaurant/358/menu").go();
+        Jurl jurl = new Jurl().url("https://eatstreet.com/publicapi/v1/restaurant/90fd4587554469b1f15b4f2e73e761809f4b4bcca52eedca/menu").go();
         Assert.assertEquals(401, jurl.getResponseCode());
-        Jurl jurl2 = new Jurl().url("https://eatstreet.com/publicapi/v1/restaurant/358/menu").header("X-Access-Token", "__API_EXPLORER_AUTH_KEY__").go();
+        Jurl jurl2 = new Jurl().url("https://eatstreet.com/publicapi/v1/restaurant/90fd4587554469b1f15b4f2e73e761809f4b4bcca52eedca/menu").header("X-Access-Token", "__API_EXPLORER_AUTH_KEY__").go();
         Assert.assertEquals(200, jurl2.getResponseCode());
         Assert.assertTrue(!jurl2.getResponseBody().isEmpty());
     }
@@ -163,6 +163,25 @@ public class JurlIntegrationTests {
         JurlReadmeExamples.EatStreetUser user = jurl
                 .url("https://eatstreet.com/publicapi/v1/signin")
                 .method("POST")
+                .header("X-Access-Token", "__API_EXPLORER_AUTH_KEY__")
+                .bodyJson(signinRequest)
+                .go()
+                .getResponseJsonObject(JurlReadmeExamples.EatStreetUser.class);
+
+        Assert.assertNotNull(user);
+        Assert.assertEquals(signinRequest.email, user.email);
+    }
+
+    @Test
+    public void testJsonPatch() throws IOException {
+        JurlReadmeExamples.EatStreetSigninRequest signinRequest = new JurlReadmeExamples.EatStreetSigninRequest();
+        signinRequest.email = "person@gmail.com";
+        signinRequest.password = "hunter2";
+
+        Jurl jurl = new Jurl();
+        JurlReadmeExamples.EatStreetUser user = jurl
+                .url("https://eatstreet.com/publicapi/v1/signin")
+                .method("PATCH")
                 .header("X-Access-Token", "__API_EXPLORER_AUTH_KEY__")
                 .bodyJson(signinRequest)
                 .go()

@@ -19,8 +19,10 @@ import java.util.concurrent.*;
 public class Jurl {
 
     public static final String GET = "GET";
+    public static final String DELETE = "DELETE";
     public static final String POST = "POST";
     public static final String PUT = "PUT";
+    public static final String PATCH = "PATCH";
 
     public static ObjectMapper DEFAULT_OBJECT_MAPPER = new ObjectMapper()
             .configure(DeserializationFeature.USE_LONG_FOR_INTS, true)
@@ -68,6 +70,13 @@ public class Jurl {
             map.put(key, values);
         }
         values.add(value);
+    }
+
+    /**
+     * Returns whether this request type is expected to send a resource in the body.  Namely, if it is PUT, POST, or PATCH.
+     */
+    public boolean maySendResource() {
+        return POST.equals(method) || PUT.equals(method) || PATCH.equals(method);
     }
 
     public Jurl maxAttempts(int maxAttempts) {
@@ -412,7 +421,7 @@ public class Jurl {
             }
         }
 
-        if (POST.equals(method) || PUT.equals(method)) {
+        if (maySendResource()) {
             String body = getEffectiveRequestBody();
             if (body != null && !body.equals("")) {
                 sb.append(String.format(" --data '%s'", body));
@@ -464,7 +473,15 @@ public class Jurl {
                 connection.setDoInput(true);
                 connection.setInstanceFollowRedirects(followRedirects);
                 connection.setUseCaches(false);
-                connection.setRequestMethod(method);
+
+                // http://stackoverflow.com/a/32503192/2340222
+                if (PATCH.equals(method)) {
+                    connection.setRequestProperty("X-HTTP-Method-Override", PATCH);
+                    connection.setRequestMethod(POST);
+                } else {
+                    connection.setRequestMethod(method);
+                }
+
                 connection.setConnectTimeout((int) timeout);
                 connection.setReadTimeout((int) timeout);
 
@@ -478,7 +495,7 @@ public class Jurl {
                     connection.setRequestProperty("Cookie", getCookieString());
                 }
 
-                if (POST.equals(method) || PUT.equals(method)) {
+                if (maySendResource()) {
                     connection.setRequestProperty("Content-Length", String.valueOf(getQueryString().length()));
                     connection.setRequestProperty("Connection", "keep-alive");
                     connection.setDoOutput(true);
