@@ -1,5 +1,7 @@
 package com.alexwyler.jurl;
 
+import android.util.Base64;
+
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -153,7 +155,8 @@ public class Jurl {
     }
 
     public Jurl basicHttpAuth(String username, String password) {
-        String encoded = Base64.getEncoder().encodeToString((username + ':' + password).getBytes());
+        byte[] bytes = (username + ':' + password).getBytes();
+        String encoded = Base64.encodeToString(bytes, 0);
         header("Authorization", "Basic " + encoded);
         return this;
     }
@@ -174,7 +177,7 @@ public class Jurl {
 
     public List<String> getRequestCookies(String cookieName) {
         List<String> requestCookies = this.requestCookies.get(cookieName);
-        return requestCookies == null ? new ArrayList<>() : requestCookies;
+        return requestCookies == null ? new ArrayList<String>() : requestCookies;
     }
 
     public String getRequestCookie(String cookieName) {
@@ -192,7 +195,7 @@ public class Jurl {
 
     public List<String> getRequestHeaders(String header) {
         List<String> headers = requestHeaders.get(header);
-        return headers != null ? headers : new ArrayList<>();
+        return headers != null ? headers : new ArrayList<String>();
     }
 
     public String getRequestHeader(String header) {
@@ -381,7 +384,7 @@ public class Jurl {
     public List<String> getResponseHeaders(String header) {
         assertGone();
         List<String> headerValues = responseHeaders.get(header);
-        return headerValues != null ? headerValues : new ArrayList<>();
+        return headerValues != null ? headerValues : new ArrayList<String>();
     }
 
     public String getResponseHeader(String header) {
@@ -574,7 +577,13 @@ public class Jurl {
     }
 
     public Future<Jurl> goAsync() {
-        return backgroundExecutor.submit(() -> this.go());
+        return backgroundExecutor.submit(new Callable<Jurl>() {
+            @Override
+            public Jurl call() throws Exception {
+                go();
+                return null;
+            }
+        });
     }
 
     public Jurl newWithCookies() {
