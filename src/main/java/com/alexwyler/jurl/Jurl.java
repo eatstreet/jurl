@@ -12,6 +12,7 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 import java.io.*;
 import java.net.*;
+import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -517,23 +518,6 @@ public class Jurl {
                 BufferedReader rd = null;
                 responseCode = connection.getResponseCode();
                 boolean useInputStream = responseCode >= 200 && responseCode < 300;
-                if (useInputStream && connection.getInputStream() != null) {
-                    rd = new BufferedReader(new InputStreamReader(
-                            connection.getInputStream()));
-
-                } else if (connection.getErrorStream() != null) {
-                    rd = new BufferedReader(new InputStreamReader(
-                            connection.getErrorStream()));
-                }
-
-                if (rd != null) {
-                    char buffer[] = new char[1024];
-                    int charsRead;
-                    while ((charsRead = rd.read(buffer)) != -1) {
-                        result.append(buffer, 0, charsRead);
-                    }
-                    rd.close();
-                }
 
                 responseHeaders = connection.getHeaderFields();
                 List<String> cookieStrings = responseHeaders.get("Set-Cookie");
@@ -546,6 +530,42 @@ public class Jurl {
                             responseCookies.addAll(HttpCookie.parse(cookie));
                         }
                     }
+                }
+
+                String charsetName = connection.getContentEncoding();
+                if (charsetName == null) {
+                    List<String> contentTypeHeaders = responseHeaders.get("Content-Type");
+                    if (contentTypeHeaders != null) {
+                        for (String contentType : contentTypeHeaders) {
+                            if (contentType.contains("charset=")) {
+                                charsetName = contentType.split("charset=")[1];
+                                break;
+                            }
+                        }
+                    }
+                }
+                Charset charset;
+                if (charsetName != null) {
+                    charset = Charset.forName(charsetName);
+                } else {
+                    charset = Charset.defaultCharset();
+                }
+
+                if (useInputStream && connection.getInputStream() != null) {
+                    rd = new BufferedReader(new InputStreamReader(
+                            connection.getInputStream(), charset));
+                } else if (connection.getErrorStream() != null) {
+                    rd = new BufferedReader(new InputStreamReader(
+                            connection.getErrorStream(), charset));
+                }
+
+                if (rd != null) {
+                    char buffer[] = new char[1024];
+                    int charsRead;
+                    while ((charsRead = rd.read(buffer)) != -1) {
+                        result.append(buffer, 0, charsRead);
+                    }
+                    rd.close();
                 }
 
                 responseBody = result.toString();

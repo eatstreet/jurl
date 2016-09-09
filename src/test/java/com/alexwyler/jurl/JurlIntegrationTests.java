@@ -1,10 +1,8 @@
 package com.alexwyler.jurl;
 
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.*;
-import org.junit.experimental.theories.suppliers.TestedOn;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -170,6 +168,25 @@ public class JurlIntegrationTests {
 
         Assert.assertNotNull(user);
         Assert.assertEquals(signinRequest.email, user.email);
+    }
+
+    @Test
+    public void testUnicode() throws IOException {
+        JurlReadmeExamples.EatStreetSigninRequest signinRequest = new JurlReadmeExamples.EatStreetSigninRequest();
+        signinRequest.email = "person@gmail.com";
+        signinRequest.password = "hunter2";
+
+        Jurl jurl = new Jurl();
+        String responseBody = jurl
+                .url("https://eatstreet.com/publicapi/v1/signin")
+                .method("POST")
+                .header("X-Access-Token", "__API_EXPLORER_AUTH_KEY__")
+                .bodyJson(signinRequest)
+                .go()
+                .getResponseBody();
+
+        Assert.assertNotNull(responseBody);
+        Assert.assertTrue(responseBody.contains("é"));
     }
 
     @Test
