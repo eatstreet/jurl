@@ -17,7 +17,7 @@ import java.util.concurrent.Future;
 public class JurlIntegrationTests {
 
     public static class EatStreetState {
-        public String name;
+        public String              name;
         public List<EatStreetCity> cities;
     }
 
@@ -28,7 +28,7 @@ public class JurlIntegrationTests {
 
     public static class EatStreetApiError {
         public boolean error;
-        public String errorDetails;
+        public String  errorDetails;
     }
 
     @Test

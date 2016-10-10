@@ -504,7 +504,7 @@ public class Jurl {
                     String body = getEffectiveRequestBody();
                     DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
                     if (body != null && !body.equals("")) {
-                        wr.writeBytes(body);
+                        wr.write(body.getBytes(Charset.forName("UTF-8")));
                     }
                     wr.flush();
                     wr.close();
