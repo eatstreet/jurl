@@ -32,7 +32,7 @@ public class Jurl {
             .configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
             .configure(JsonParser.Feature.ALLOW_NUMERIC_LEADING_ZEROS, true);
 
-    public static final XmlMapper DEFAULT_XML_MAPPER = (XmlMapper) new XmlMapper()
+    public static XmlMapper DEFAULT_XML_MAPPER = (XmlMapper) new XmlMapper()
             .configure(DeserializationFeature.USE_LONG_FOR_INTS, true);
 
     public static ExecutorService backgroundExecutor = Executors.newFixedThreadPool(100);
