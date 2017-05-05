@@ -33,32 +33,32 @@ public class JurlIntegrationTests {
 
     @Test
     public void testGoodPage() {
-        Jurl jurl = new Jurl().url("https://eatstreet.com/").go();
+        Jurl jurl = new Jurl().url("https://api.eatstreet.com/").go();
         Assert.assertTrue(!jurl.getResponseBody().isEmpty());
         Assert.assertEquals(200, jurl.getResponseCode());
     }
 
     @Test
     public void testCurlGet() {
-        String curl = new Jurl().url("https://eatstreet.com/").toCurl();
-        Assert.assertEquals("curl -X GET -L 'https://eatstreet.com/'", curl);
+        String curl = new Jurl().url("https://api.eatstreet.com/").toCurl();
+        Assert.assertEquals("curl -X GET -L 'https://api.eatstreet.com/'", curl);
     }
 
     @Test
     public void testJsonList() {
-        Jurl jurl = new Jurl().url("https://eatstreet.com/api/v2/CitiesByState.json").go();
+        Jurl jurl = new Jurl().url("https://api.eatstreet.com/api/v2/CitiesByState.json").go();
         Assert.assertNotNull(jurl.getResponseJsonList(EatStreetState.class));
     }
 
     @Test
     public void testJsonObject() {
-        Jurl jurl = new Jurl().url("https://eatstreet.com/api/v2/not-an-endpoint").go();
+        Jurl jurl = new Jurl().url("https://api.eatstreet.com/api/v2/not-an-endpoint").go();
         Assert.assertNotNull(jurl.getResponseJsonObject(EatStreetApiError.class));
     }
 
     @Test
     public void testFailNoThrow() {
-        Jurl jurl = new Jurl().url("https://eatstreet.com/api/v2/not-an-endpoint");
+        Jurl jurl = new Jurl().url("https://api.eatstreet.com/api/v2/not-an-endpoint");
         jurl.throwOnNon200(false);
         jurl.go();
         Assert.assertEquals(404, jurl.getResponseCode());
@@ -68,7 +68,7 @@ public class JurlIntegrationTests {
     public void testFailThrow() {
         JurlHttpStatusCodeException thrown = null;
         try {
-            Jurl jurl2 = new Jurl().url("https://eatstreet.com/api/v2/invalid-endpoint");
+            Jurl jurl2 = new Jurl().url("https://api.eatstreet.com/api/v2/invalid-endpoint");
             jurl2.throwOnNon200(true);
             jurl2.go();
         } catch (JurlHttpStatusCodeException e) {
@@ -83,14 +83,14 @@ public class JurlIntegrationTests {
 
     @Test
     public void testFollow301() {
-        Jurl jurl = new Jurl().url("https://eatstreet.com/madison").go();
+        Jurl jurl = new Jurl().url("https://api.eatstreet.com/madison").go();
         Assert.assertEquals(200, jurl.getResponseCode());
         Assert.assertTrue(!jurl.getResponseBody().isEmpty());
     }
 
     @Test
     public void testAsync() throws ExecutionException, InterruptedException {
-        Future<Jurl> future = new Jurl().url("https://eatstreet.com/api/v2/CitiesByState.json").goAsync();
+        Future<Jurl> future = new Jurl().url("https://api.eatstreet.com/api/v2/CitiesByState.json").goAsync();
         Jurl jurl = future.get();
         Assert.assertTrue(!jurl.getResponseBody().isEmpty());
         Assert.assertNotNull(jurl.getResponseJsonList(EatStreetState.class));
@@ -100,10 +100,10 @@ public class JurlIntegrationTests {
 
     @Test
     public void testNewWithCookies() {
-        Jurl jurl = new Jurl().url("https://eatstreet.com/api/v2/CitiesByState.json").go();
+        Jurl jurl = new Jurl().url("https://api.eatstreet.com/api/v2/CitiesByState.json").go();
         Assert.assertNotNull(jurl.getResponseCookie("JSESSIONID"));
         String jsessionId = jurl.getResponseCookie("JSESSIONID").getValue();
-        Jurl jurl2 = jurl.newWithCookies().url("https://eatstreet.com/ClientConfig.json").go();
+        Jurl jurl2 = jurl.newWithCookies().url("https://api.eatstreet.com/ClientConfig.json").go();
         TypeReference<HashMap<String, Object>> typeRef = new TypeReference<HashMap<String, Object>>() {
         };
         Map<String, Object> responseJsonMap = jurl2.getResponseJsonObject(typeRef);
@@ -113,33 +113,33 @@ public class JurlIntegrationTests {
 
     @Test
     public void testCurlCookies() {
-        String curl = new Jurl().url("https://eatstreet.com/api/v2/CitiesByState.json")
+        String curl = new Jurl().url("https://api.eatstreet.com/api/v2/CitiesByState.json")
                 .cookie("test-cookie", "test-value")
                 .cookie("test-cookie", "test-value2")
                 .cookie("test-cookie3", "test-value4")
                 .toCurl();
 
-        Assert.assertEquals("curl -X GET -L --cookie \"test-cookie=test-value;test-cookie=test-value2;test-cookie3=test-value4\" 'https://eatstreet.com/api/v2/CitiesByState.json'", curl);
+        Assert.assertEquals("curl -X GET -L --cookie \"test-cookie=test-value;test-cookie=test-value2;test-cookie3=test-value4\" 'https://api.eatstreet.com/api/v2/CitiesByState.json'", curl);
     }
 
     @Test
     public void testRequestHeaders() {
-        Jurl jurl = new Jurl().url("https://eatstreet.com/publicapi/v1/restaurant/90fd4587554469b1f15b4f2e73e761809f4b4bcca52eedca/menu").go();
+        Jurl jurl = new Jurl().url("https://api.eatstreet.com/publicapi/v1/restaurant/90fd4587554469b1f15b4f2e73e761809f4b4bcca52eedca/menu").go();
         Assert.assertEquals(401, jurl.getResponseCode());
-        Jurl jurl2 = new Jurl().url("https://eatstreet.com/publicapi/v1/restaurant/90fd4587554469b1f15b4f2e73e761809f4b4bcca52eedca/menu").header("X-Access-Token", "__API_EXPLORER_AUTH_KEY__").go();
+        Jurl jurl2 = new Jurl().url("https://api.eatstreet.com/publicapi/v1/restaurant/90fd4587554469b1f15b4f2e73e761809f4b4bcca52eedca/menu").header("X-Access-Token", "__API_EXPLORER_AUTH_KEY__").go();
         Assert.assertEquals(200, jurl2.getResponseCode());
         Assert.assertTrue(!jurl2.getResponseBody().isEmpty());
     }
 
     @Test
     public void testCurlRequestHeaders() {
-        String curl = new Jurl().url("https://eatstreet.com/publicapi/v1/restaurant/358/menu").header("X-Access-Token", "__API_EXPLORER_AUTH_KEY__").toCurl();
-        Assert.assertEquals("curl -X GET -L -H \"X-Access-Token: __API_EXPLORER_AUTH_KEY__\" 'https://eatstreet.com/publicapi/v1/restaurant/358/menu'", curl);
+        String curl = new Jurl().url("https://api.eatstreet.com/publicapi/v1/restaurant/358/menu").header("X-Access-Token", "__API_EXPLORER_AUTH_KEY__").toCurl();
+        Assert.assertEquals("curl -X GET -L -H \"X-Access-Token: __API_EXPLORER_AUTH_KEY__\" 'https://api.eatstreet.com/publicapi/v1/restaurant/358/menu'", curl);
     }
 
     @Test
     public void testResponseHeaders() {
-        Jurl jurl = new Jurl().url("https://eatstreet.com/").go();
+        Jurl jurl = new Jurl().url("https://api.eatstreet.com/").go();
         Assert.assertTrue(!jurl.getResponseHeaders().isEmpty());
         Assert.assertEquals("text/html;charset=utf-8", jurl.getResponseHeader("Content-Type"));
     }
@@ -152,7 +152,7 @@ public class JurlIntegrationTests {
 
         Jurl jurl = new Jurl();
         JurlReadmeExamples.EatStreetUser user = jurl
-                .url("https://eatstreet.com/publicapi/v1/signin")
+                .url("https://api.eatstreet.com/publicapi/v1/signin")
                 .method("POST")
                 .header("X-Access-Token", "__API_EXPLORER_AUTH_KEY__")
                 .bodyJson(signinRequest)
@@ -171,7 +171,7 @@ public class JurlIntegrationTests {
 
         Jurl jurl = new Jurl();
         String responseBody = jurl
-                .url("https://eatstreet.com/publicapi/v1/signin")
+                .url("https://api.eatstreet.com/publicapi/v1/signin")
                 .method("POST")
                 .header("X-Access-Token", "__API_EXPLORER_AUTH_KEY__")
                 .bodyJson(signinRequest)
@@ -190,7 +190,7 @@ public class JurlIntegrationTests {
 
         Jurl jurl = new Jurl();
         JurlReadmeExamples.EatStreetUser user = jurl
-                .url("https://eatstreet.com/publicapi/v1/signin")
+                .url("https://api.eatstreet.com/publicapi/v1/signin")
                 .method("PATCH")
                 .header("X-Access-Token", "__API_EXPLORER_AUTH_KEY__")
                 .bodyJson(signinRequest)
@@ -208,11 +208,11 @@ public class JurlIntegrationTests {
         signinRequest.password = "hunter2";
 
         String curl = new Jurl()
-                .url("https://eatstreet.com/publicapi/v1/signin")
+                .url("https://api.eatstreet.com/publicapi/v1/signin")
                 .method("POST")
                 .header("X-Access-Token", "__API_EXPLORER_AUTH_KEY__")
                 .bodyJson(signinRequest).toCurl();
 
-        Assert.assertEquals("curl -X POST -L -H \"X-Access-Token: __API_EXPLORER_AUTH_KEY__\" -H \"Content-Type: application/json\" --data '{\"email\":\"person@gmail.com\",\"password\":\"hunter2\"}' 'https://eatstreet.com/publicapi/v1/signin'", curl);
+        Assert.assertEquals("curl -X POST -L -H \"X-Access-Token: __API_EXPLORER_AUTH_KEY__\" -H \"Content-Type: application/json\" --data '{\"email\":\"person@gmail.com\",\"password\":\"hunter2\"}' 'https://api.eatstreet.com/publicapi/v1/signin'", curl);
     }
 }

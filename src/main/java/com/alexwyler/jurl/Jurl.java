@@ -14,7 +14,6 @@ import org.apache.http.annotation.Contract;
 import org.apache.http.annotation.ThreadingBehavior;
 import org.apache.http.client.methods.*;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
@@ -248,6 +247,7 @@ public class Jurl {
     }
 
     public Jurl bodyJson(Object object) {
+        header("Content-Type", "application/json");
         try {
             body(DEFAULT_OBJECT_MAPPER.writeValueAsString(object));
         } catch (JsonProcessingException e) {
@@ -502,7 +502,7 @@ public class Jurl {
 
                 if (httpRequest instanceof HttpEntityEnclosingRequest) {
                     final HttpEntityEnclosingRequest entityRequest = (HttpEntityEnclosingRequest) httpRequest;
-                    final StringEntity entity = new StringEntity(requestBody, ContentType.APPLICATION_JSON);
+                    final StringEntity entity = new StringEntity(requestBody);
                     entityRequest.setEntity(entity);
                 }
 
