@@ -11,6 +11,7 @@ repositories {
 }
 
 dependencies {
+    compile group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.3'
     compile 'com.fasterxml.jackson.core:jackson-databind:2.7.1-1'
     compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.7.1'
     testCompile 'junit:junit:4.11'

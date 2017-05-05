@@ -7,12 +7,29 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.CollectionType;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import org.apache.http.Header;
+import org.apache.http.HttpEntityEnclosingRequest;
+import org.apache.http.NameValuePair;
+import org.apache.http.annotation.Contract;
+import org.apache.http.annotation.ThreadingBehavior;
+import org.apache.http.client.methods.*;
+import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.DefaultRedirectStrategy;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
 
-import java.io.*;
+import java.io.IOException;
 import java.net.*;
-import java.nio.charset.Charset;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Created by alexwyler on 2/12/16.
@@ -24,6 +41,7 @@ public class Jurl {
     public static final String POST = "POST";
     public static final String PUT = "PUT";
     public static final String PATCH = "PATCH";
+    public static final String EMPTY = "";
 
     public static ObjectMapper DEFAULT_OBJECT_MAPPER = new ObjectMapper()
             .configure(DeserializationFeature.USE_LONG_FOR_INTS, true)
@@ -46,14 +64,15 @@ public class Jurl {
     }
 
     boolean gone;
+    URIBuilder builder = new URIBuilder().setScheme("http");
     String method = GET;
     URL url = null;
-    Map<String, List<String>> parameters = new HashMap<>();
-    Map<String, List<String>> requestHeaders = new HashMap<>();
-    Map<String, List<String>> responseHeaders = new HashMap<>();
-    Map<String, List<String>> requestCookies = new HashMap<>();
+    List<NameValuePair> parameters = new ArrayList<>();
+    List<NameValuePair> requestHeaders = new ArrayList<>();
+    List<NameValuePair> responseHeaders = new ArrayList<>();
+    List<NameValuePair> requestCookies = new ArrayList<>();
     List<HttpCookie> responseCookies = new ArrayList<>();
-    String requestBody = null;
+    String requestBody = EMPTY;
     String responseBody = null;
     int responseCode;
     long timeout = TimeUnit.SECONDS.toMillis(60); // ms
@@ -63,15 +82,6 @@ public class Jurl {
     boolean followRedirects = true;
     ObjectMapper jacksonObjectMapper = DEFAULT_OBJECT_MAPPER;
     XmlMapper jacksonXmlMapper = DEFAULT_XML_MAPPER;
-
-    private static <T, V> void addToMultiMap(Map<T, List<V>> map, T key, V value) {
-        List<V> values = map.get(key);
-        if (values == null) {
-            values = new ArrayList<>();
-            map.put(key, values);
-        }
-        values.add(value);
-    }
 
     /**
      * Returns whether this request type is expected to send a resource in the body.  Namely, if it is PUT, POST, or PATCH.
@@ -105,6 +115,9 @@ public class Jurl {
 
     public Jurl url(URL url) {
         this.url = url;
+        builder.setHost(url.getHost());
+        builder.setPath(url.getPath());
+        builder.setPort(url.getPort());
         return this;
     }
 
@@ -113,7 +126,7 @@ public class Jurl {
     }
 
     public Jurl method(String method) {
-        this.method = method;
+        this.method = method.toUpperCase();
         return this;
     }
 
@@ -122,23 +135,20 @@ public class Jurl {
     }
 
     public Jurl param(String key, String value) {
-        addToMultiMap(parameters, key, value);
+        builder.addParameter(key, value);
         return this;
     }
 
     public Jurl param(String key, int value) {
-        addToMultiMap(parameters, key, String.valueOf(value));
-        return this;
+        return param(key, String.valueOf(value));
     }
 
     public Jurl param(String key, double value) {
-        addToMultiMap(parameters, key, String.valueOf(value));
-        return this;
+        return param(key, String.valueOf(value));
     }
 
     public Jurl param(String key, boolean value) {
-        addToMultiMap(parameters, key, String.valueOf(value));
-        return this;
+        return param(key, String.valueOf(value));
     }
 
     public Jurl params(Map<String, Object> params) {
@@ -160,31 +170,40 @@ public class Jurl {
     }
 
     public Jurl header(String key, String value) {
-        addToMultiMap(requestHeaders, key, value);
+        requestHeaders.add(new BasicNameValuePair(key, value));
         return this;
     }
 
     public Jurl cookie(String key, String value) {
-        addToMultiMap(requestCookies, key, value);
+        requestCookies.add(new BasicNameValuePair(key, value));
         return this;
     }
 
     public Map<String, List<String>> getRequestCookies() {
+        return valuePairToMap(requestCookies);
+    }
+
+    public List<NameValuePair> getRequestCookieList() {
         return this.requestCookies;
     }
 
     public List<String> getRequestCookies(String cookieName) {
-        List<String> requestCookies = this.requestCookies.get(cookieName);
-        return requestCookies == null ? new ArrayList<>() : requestCookies;
+        return requestCookies.stream()
+                .filter((pair) -> pair.getName().equals(cookieName))
+                .map(NameValuePair::getValue)
+                .collect(Collectors.toList());
     }
 
     public String getRequestCookie(String cookieName) {
-        List<String> requestCookies = this.requestCookies.get(cookieName);
-        return requestCookies == null ? null : requestCookies.get(0);
+        return requestCookies.stream()
+                .filter((pair) -> pair.getName().equals(cookieName))
+                .findFirst()
+                .map(NameValuePair::getValue)
+                .orElseGet(null);
     }
 
     public Map<String, List<String>> getRequestHeaders() {
-        return requestHeaders;
+        return valuePairToMap(requestHeaders);
     }
 
     public String getRequestBody() {
@@ -192,17 +211,18 @@ public class Jurl {
     }
 
     public List<String> getRequestHeaders(String header) {
-        List<String> headers = requestHeaders.get(header);
-        return headers != null ? headers : new ArrayList<>();
+        return requestHeaders.stream()
+                .filter((pair) -> pair.getName().equals(header))
+                .map(NameValuePair::getValue)
+                .collect(Collectors.toList());
     }
 
     public String getRequestHeader(String header) {
-        List<String> headers = requestHeaders.get(header);
-        if (headers == null || headers.isEmpty()) {
-            return null;
-        } else {
-            return headers.get(0);
-        }
+        return requestHeaders.stream()
+                .filter((pair) -> pair.getName().equals(header))
+                .findFirst()
+                .map(NameValuePair::getValue)
+                .orElseGet(null);
     }
 
     public ObjectMapper getObjectMapper() {
@@ -233,7 +253,6 @@ public class Jurl {
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
-        this.contentType("application/json");
         return this;
     }
 
@@ -253,25 +272,12 @@ public class Jurl {
     }
 
     protected String getQueryString() {
-        StringBuilder queryString = new StringBuilder();
-        for (Map.Entry<String, List<String>> entry : parameters.entrySet()) {
-            if (entry.getKey() == null) {
-                continue;
-            }
-            for (String value : entry.getValue()) {
-                if (queryString.length() > 0) {
-                    queryString.append("&");
-                }
-                try {
-                    queryString.append(URLEncoder.encode(entry.getKey(), "UTF-8") + "=" +
-                            URLEncoder.encode(value, "UTF-8"));
-                } catch (UnsupportedEncodingException e) {
-                    throw new RuntimeException(e);
-                }
-            }
+        try {
+            final String query = builder.build().getQuery();
+            return query != null ? query : EMPTY;
+        } catch (URISyntaxException e) {
+            return EMPTY;
         }
-
-        return queryString.toString();
     }
 
     protected String getEffectiveRequestBody() {
@@ -376,19 +382,24 @@ public class Jurl {
 
     public Map<String, List<String>> getResponseHeaders() {
         assertGone();
-        return responseHeaders;
+        return valuePairToMap(responseHeaders);
     }
 
     public List<String> getResponseHeaders(String header) {
         assertGone();
-        List<String> headerValues = responseHeaders.get(header);
-        return headerValues != null ? headerValues : new ArrayList<>();
+        return responseHeaders.stream()
+                .filter((pair) -> pair.getName().equals(header))
+                .map(NameValuePair::getValue)
+                .collect(Collectors.toList());
     }
 
     public String getResponseHeader(String header) {
         assertGone();
-        List<String> headerValues = responseHeaders.get(header);
-        return (headerValues != null && !headerValues.isEmpty()) ? headerValues.get(0) : null;
+        return responseHeaders.stream()
+                .filter((pair) -> pair.getName().equals(header))
+                .findFirst()
+                .map(NameValuePair::getValue)
+                .orElseGet(null);
     }
 
     public int getResponseCode() {
@@ -407,7 +418,7 @@ public class Jurl {
             sb.append(" -L");
         }
 
-        if (!getRequestCookies().isEmpty()) {
+        if (!requestCookies.isEmpty()) {
             sb.append(" --cookie ");
             sb.append(String.format("\"%s\"", getCookieString()));
         }
@@ -424,7 +435,7 @@ public class Jurl {
 
         if (maySendResource()) {
             String body = getEffectiveRequestBody();
-            if (body != null && !body.equals("")) {
+            if (body != null && !body.equals(EMPTY)) {
                 sb.append(String.format(" --data '%s'", body));
             }
 
@@ -452,14 +463,15 @@ public class Jurl {
     }
 
     protected String getCookieString() {
-        StringBuilder cookieString = new StringBuilder();
-        for (Map.Entry<String, List<String>> entry : requestCookies.entrySet()) {
-            for (String cookieValue : entry.getValue()) {
-                if (cookieString.length() > 0) {
-                    cookieString.append(";");
-                }
-                cookieString.append(entry.getKey() + '=' + cookieValue);
-            }
+        final StringBuilder cookieString = new StringBuilder();
+        for (NameValuePair cookie : requestCookies) {
+            cookieString.append(cookie.getName());
+            cookieString.append('=');
+            cookieString.append(cookie.getValue());
+            cookieString.append(';');
+        }
+        if (cookieString.length() > 1) {
+            cookieString.setLength(cookieString.length() - 1);
         }
         return cookieString.toString();
     }
@@ -468,104 +480,45 @@ public class Jurl {
         onBeforeGo();
         for (int i = 1; i <= maxAttempts; i++) {
             onBeforeAttempt();
+
+            final HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
+            if (followRedirects) {
+                httpClientBuilder.setRedirectStrategy(new FollowAllRedirectStrategy());
+            }
+            final CloseableHttpClient httpClient = httpClientBuilder
+                    .build();
             try {
-                URL url = getUrlWithParams();
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                connection.setDoInput(true);
-                connection.setInstanceFollowRedirects(followRedirects);
-                connection.setUseCaches(false);
+                final HttpUriRequest httpRequest = getRequest();
 
-                // http://stackoverflow.com/a/32503192/2340222
-                if (PATCH.equals(method)) {
-                    connection.setRequestProperty("X-HTTP-Method-Override", PATCH);
-                    connection.setRequestMethod(POST);
-                } else {
-                    connection.setRequestMethod(method);
-                }
-
-                connection.setConnectTimeout((int) timeout);
-                connection.setReadTimeout((int) timeout);
-
-                for (Map.Entry<String, List<String>> entry : requestHeaders.entrySet()) {
-                    for (String headerValue : entry.getValue()) {
-                        connection.setRequestProperty(entry.getKey(), headerValue);
-                    }
+                for (NameValuePair header : requestHeaders) {
+                    httpRequest.addHeader(header.getName(), header.getValue());
                 }
 
                 if (!requestCookies.isEmpty()) {
-                    connection.setRequestProperty("Cookie", getCookieString());
+                    httpRequest.setHeader("Cookie", getCookieString());
+                }
+                httpRequest.setHeader("Accept", "application/json");
+                httpRequest.setHeader("Cache-Control", "no-cache");
+
+                if (httpRequest instanceof HttpEntityEnclosingRequest) {
+                    final HttpEntityEnclosingRequest entityRequest = (HttpEntityEnclosingRequest) httpRequest;
+                    final StringEntity entity = new StringEntity(requestBody, ContentType.APPLICATION_JSON);
+                    entityRequest.setEntity(entity);
                 }
 
-                if (maySendResource()) {
-                    connection.setRequestProperty("Content-Length", String.valueOf(getQueryString().length()));
-                    connection.setRequestProperty("Connection", "keep-alive");
-                    connection.setDoOutput(true);
+                final CloseableHttpResponse response = httpClient.execute(httpRequest);
+                responseCode = response.getStatusLine().getStatusCode();
 
-                    String body = getEffectiveRequestBody();
-                    DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
-                    if (body != null && !body.equals("")) {
-                        wr.write(body.getBytes(Charset.forName("UTF-8")));
-                    }
-                    wr.flush();
-                    wr.close();
-                    connection.disconnect();
-                }
+                for (Header header : response.getAllHeaders()) {
+                    responseHeaders.add(new BasicNameValuePair(header.getName(), header.getValue()));
 
-                StringBuilder result = new StringBuilder();
-                BufferedReader rd = null;
-                responseCode = connection.getResponseCode();
-                boolean useInputStream = responseCode >= 200 && responseCode < 300;
-
-                responseHeaders = connection.getHeaderFields();
-                List<String> cookieStrings = responseHeaders.get("Set-Cookie");
-                if (cookieStrings == null) {
-                    cookieStrings = responseHeaders.get("set-cookie");
-                }
-                if (cookieStrings != null) {
-                    for (String cookie : cookieStrings) {
-                        if (cookie != null && !cookie.equals("")) {
-                            responseCookies.addAll(HttpCookie.parse(cookie));
-                        }
+                    if (header.getName().equalsIgnoreCase("Set-Cookie")) {
+                        responseCookies.addAll(HttpCookie.parse(header.getValue()));
                     }
                 }
 
-                String charsetName = connection.getContentEncoding();
-                if (charsetName == null) {
-                    List<String> contentTypeHeaders = responseHeaders.get("Content-Type");
-                    if (contentTypeHeaders != null) {
-                        for (String contentType : contentTypeHeaders) {
-                            if (contentType.contains("charset=")) {
-                                charsetName = contentType.split("charset=")[1];
-                                break;
-                            }
-                        }
-                    }
-                }
-                Charset charset;
-                if (charsetName != null) {
-                    charset = Charset.forName(charsetName);
-                } else {
-                    charset = Charset.defaultCharset();
-                }
-
-                if (useInputStream && connection.getInputStream() != null) {
-                    rd = new BufferedReader(new InputStreamReader(
-                            connection.getInputStream(), charset));
-                } else if (connection.getErrorStream() != null) {
-                    rd = new BufferedReader(new InputStreamReader(
-                            connection.getErrorStream(), charset));
-                }
-
-                if (rd != null) {
-                    char buffer[] = new char[1024];
-                    int charsRead;
-                    while ((charsRead = rd.read(buffer)) != -1) {
-                        result.append(buffer, 0, charsRead);
-                    }
-                    rd.close();
-                }
-
-                responseBody = result.toString();
+                responseBody = EntityUtils.toString(response.getEntity());
+                response.close();
                 onAfterAttempt();
 
                 boolean retryable = responseCode >= 500 && responseCode < 600;
@@ -575,6 +528,14 @@ public class Jurl {
             } catch (IOException e) {
                 if (i == maxAttempts) {
                     throw new RuntimeException(e);
+                }
+            } catch (URISyntaxException e) {
+                throw new RuntimeException(e);
+            } finally {
+                try {
+                    httpClient.close();
+                } catch (IOException e) {
+                    // Silently close
                 }
             }
             if (timeBetweenAttempts > 0) {
@@ -593,21 +554,64 @@ public class Jurl {
         return this;
     }
 
+    private HttpUriRequest getRequest() throws URISyntaxException {
+        final URI uri = builder.build();
+        HttpUriRequest request;
+        switch (method) {
+            case GET:
+                request = new HttpGet(uri);
+                break;
+            case POST:
+                request = new HttpPost(uri);
+                break;
+            case PATCH:
+                request = new HttpPatch(uri);
+                break;
+            case PUT:
+                request = new HttpPut(uri);
+                break;
+            case DELETE:
+                request = new HttpDelete(uri);
+                break;
+            default:
+                throw new RuntimeException("Unsupported HTTP Method: " + method);
+        }
+        return request;
+    }
+
     public Future<Jurl> goAsync() {
         return backgroundExecutor.submit(() -> this.go());
     }
 
     public Jurl newWithCookies() {
         Jurl jurl = new Jurl();
-        for (Map.Entry<String, List<String>> entry : requestCookies.entrySet()) {
-            for (String cookieValue : entry.getValue()) {
-                jurl.cookie(entry.getKey(), cookieValue);
-            }
+        for (NameValuePair requestCookie : requestCookies) {
+            jurl.cookie(requestCookie.getName(), requestCookie.getValue());
         }
 
         for (HttpCookie cookie : responseCookies) {
             jurl.cookie(cookie.getName(), cookie.getValue());
         }
         return jurl;
+    }
+
+    private Map<String, List<String>> valuePairToMap(List<NameValuePair> pairs) {
+        final HashMap<String, List<String>> map = new HashMap<>();
+        for (NameValuePair pair : pairs) {
+            final String name = pair.getName();
+            final String value = pair.getValue();
+
+            List<String> values = map.computeIfAbsent(name, k -> new ArrayList<>());
+            values.add(value);
+        }
+        return map;
+    }
+
+    @Contract(threading = ThreadingBehavior.IMMUTABLE)
+    private static class FollowAllRedirectStrategy extends DefaultRedirectStrategy {
+        @Override
+        protected boolean isRedirectable(String method) {
+            return true;
+        }
     }
 }
