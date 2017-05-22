@@ -1,5 +1,5 @@
-group 'alexwyler'
-version '1.0'
+group 'com.github.eatstreet'
+version '2.6'
 
 apply plugin: 'java'
 apply plugin: 'maven'
