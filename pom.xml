@@ -4,7 +4,7 @@
 
     <groupId>com.github.eatstreet</groupId>
     <artifactId>jurl</artifactId>
-    <version>2.6</version>
+    <version>2.6.1</version>
 
     <build>
         <plugins>
@@ -114,7 +114,7 @@
         <connection>scm:git:git://github.com/eatstreet/jurl.git</connection>
         <developerConnection>scm:git:git@github.com:eatstreet/jurl.git</developerConnection>
         <url>http://github.com/eatstreet/jurl</url>
-      <tag>jurl-2.5</tag>
+      <tag>jurl-2.6.1</tag>
   </scm>
     <distributionManagement>
         <snapshotRepository>
