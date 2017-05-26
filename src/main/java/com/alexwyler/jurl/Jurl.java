@@ -63,7 +63,7 @@ public class Jurl {
     }
 
     boolean gone;
-    URIBuilder builder = new URIBuilder().setScheme("http");
+    final URIBuilder builder = new URIBuilder();
     String method = GET;
     URL url = null;
     List<NameValuePair> parameters = new ArrayList<>();
@@ -114,6 +114,7 @@ public class Jurl {
 
     public Jurl url(URL url) {
         this.url = url;
+        builder.setScheme(url.getProtocol());
         builder.setHost(url.getHost());
         builder.setPath(url.getPath());
         builder.setPort(url.getPort());
