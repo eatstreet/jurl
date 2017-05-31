@@ -118,6 +118,7 @@ public class Jurl {
         builder.setHost(url.getHost());
         builder.setPath(url.getPath());
         builder.setPort(url.getPort());
+        builder.setCustomQuery(url.getQuery());
         return this;
     }
 
@@ -259,7 +260,9 @@ public class Jurl {
 
     public URL getUrlWithParams() {
         String urlWithParamsStr = this.url.toString();
-        if (GET.equals(method) || (requestBody != null && !requestBody.isEmpty())) {
+        final String query = this.url.getQuery();
+        if ((query == null || query.isEmpty()) &&
+                GET.equals(method) || (requestBody != null && !requestBody.isEmpty())) {
             String queryString = getQueryString();
             if (!queryString.isEmpty()) {
                 urlWithParamsStr += '?' + queryString;

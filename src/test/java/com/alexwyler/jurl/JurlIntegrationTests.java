@@ -123,6 +123,31 @@ public class JurlIntegrationTests {
     }
 
     @Test
+    public void testUrlParameters() {
+        final String url = "https://api.eatstreet.com/api/v2/CitiesByState.json";
+        final String params = "?param1=test";
+        final String urlWithParams = url + params;
+
+        final Jurl jurl = new Jurl().url(url + params);
+        final String jurlUrl = jurl.getUrlWithParams().toString();
+
+        Assert.assertEquals(urlWithParams, jurlUrl);
+    }
+
+    @Test
+    public void testIndividualUrlParameters() {
+        final String url = "https://api.eatstreet.com/api/v2/CitiesByState.json";
+        final String paramName = "param1";
+        final String paramValue = "test";
+        final String urlWithParams = url + "?" + paramName + "=" + paramValue;
+
+        final Jurl jurl = new Jurl().url(url).param(paramName, paramValue);
+        final String jurlUrl = jurl.getUrlWithParams().toString();
+
+        Assert.assertEquals(urlWithParams, jurlUrl);
+    }
+
+    @Test
     public void testRequestHeaders() {
         Jurl jurl = new Jurl().url("https://api.eatstreet.com/publicapi/v1/restaurant/90fd4587554469b1f15b4f2e73e761809f4b4bcca52eedca/menu").go();
         Assert.assertEquals(401, jurl.getResponseCode());
