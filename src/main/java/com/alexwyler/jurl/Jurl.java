@@ -140,7 +140,19 @@ public class Jurl {
         return this;
     }
 
+    public Jurl param(String key, char value) {
+        return param(key, String.valueOf(value));
+    }
+
     public Jurl param(String key, int value) {
+        return param(key, String.valueOf(value));
+    }
+
+    public Jurl param(String key, long value) {
+        return param(key, String.valueOf(value));
+    }
+
+    public Jurl param(String key, float value) {
         return param(key, String.valueOf(value));
     }
 
