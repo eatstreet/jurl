@@ -1,8 +1,0 @@
-<component name="ArtifactManager">
-  <artifact type="jar" build-on-make="true" name="jurl-core:jar">
-    <output-path>$PROJECT_DIR$/out/artifacts/jurl_core_jar</output-path>
-    <root id="archive" name="jurl-core.jar">
-      <element id="module-output" name="jurl" />
-    </root>
-  </artifact>
-</component>

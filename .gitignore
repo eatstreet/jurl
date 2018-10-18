@@ -33,5 +33,6 @@ gradle-app.setting
 
 # mpeltonen/sbt-idea plugin
 .idea_modules/
+.idea/
 
 .DS_Store
