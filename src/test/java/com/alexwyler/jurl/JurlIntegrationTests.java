@@ -83,9 +83,9 @@ public class JurlIntegrationTests {
 
     @Test
     public void testNoFollow301() {
-        Jurl jurl = new Jurl().url("https://eatstreet.com/madison").followRedirects(false).go();
+        Jurl jurl = new Jurl().url("https://badgerbites.com").followRedirects(false).go();
         Assert.assertEquals(301, jurl.getResponseCode());
-        Assert.assertEquals("/madison/home", jurl.getResponseHeader("Location"));
+        Assert.assertNotNull(jurl.getResponseHeader("Location"));
     }
 
     @Test
