@@ -452,7 +452,7 @@ public class Jurl {
         if (maySendResource()) {
             String body = getEffectiveRequestBody();
             if (body != null && !body.equals(EMPTY)) {
-                sb.append(String.format(" --data '%s'", body));
+                sb.append(String.format(" --data '%s'", body.replaceAll("'", "\\'")));
             }
 
             if (getRequestBody() != null) {
