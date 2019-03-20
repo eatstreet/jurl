@@ -1,3 +1,5 @@
+[![DepShield Badge](https://depshield.sonatype.org/badges/eatstreet/jurl/depshield.svg)](https://depshield.github.io)
+
 # Jurl
 Jurl is a modern Java http client designed to make API integrations simpler.
 
