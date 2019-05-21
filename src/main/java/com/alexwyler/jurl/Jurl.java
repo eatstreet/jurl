@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.CollectionType;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import org.apache.http.Header;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.NameValuePair;
 import org.apache.http.annotation.Contract;
@@ -212,7 +213,7 @@ public class Jurl {
                 .filter((pair) -> pair.getName().equals(cookieName))
                 .findFirst()
                 .map(NameValuePair::getValue)
-                .orElseGet(null);
+                .orElse(null);
     }
 
     public Map<String, List<String>> getRequestHeaders() {
@@ -443,8 +444,10 @@ public class Jurl {
         if (!headers.isEmpty()) {
             for (String headerName : headers.keySet()) {
                 for (String headerValue : headers.get(headerName)) {
-                    sb.append(" -H ");
-                    sb.append(String.format("\"%s: %s\"", headerName, headerValue));
+                    if (headerValue != null) {
+                        sb.append(" -H ");
+                        sb.append(String.format("\"%s: %s\"", headerName, headerValue));
+                    }
                 }
             }
         }
@@ -533,7 +536,10 @@ public class Jurl {
                     }
                 }
 
-                responseBody = EntityUtils.toString(response.getEntity());
+                HttpEntity responseEntity = response.getEntity();
+                if (responseEntity != null) {
+                    responseBody = EntityUtils.toString(responseEntity);
+                }
                 response.close();
                 onAfterAttempt();
 
