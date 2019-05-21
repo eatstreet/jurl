@@ -9,6 +9,11 @@ jobs:
 
       - checkout
 
+      - run: echo 'export TERM=xterm' >> $BASH_ENV
+      - run:
+          name: chmod permissions
+          command: chmod +x ./gradlew
+
       - restore_cache:
           key: circleci-java-{{ checksum "build.gradle" }}
 
