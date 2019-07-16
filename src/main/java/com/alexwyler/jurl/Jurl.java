@@ -547,7 +547,9 @@ public class Jurl {
                     			if (newHeader.length() > 0) {
                     				newHeader = newHeader.substring(0, newHeader.length() - 1);
                     			}
-                    			responseCookies.addAll(HttpCookie.parse(newHeader));
+                                        if (newHeader.trim().length() > 0) {
+                                            responseCookies.addAll(HttpCookie.parse(newHeader));
+                                        }
                     		} else {
                     			throw e;
                     		}
