@@ -7,6 +7,9 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.CollectionType;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+
+import jdk.nashorn.internal.ir.JoinPredecessorExpression;
+
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpEntityEnclosingRequest;
@@ -532,7 +535,25 @@ public class Jurl {
                     responseHeaders.add(new BasicNameValuePair(header.getName(), header.getValue()));
 
                     if (header.getName().equalsIgnoreCase("Set-Cookie")) {
-                        responseCookies.addAll(HttpCookie.parse(header.getValue()));
+                    	try {
+                    		responseCookies.addAll(HttpCookie.parse(header.getValue()));
+                    	} catch (IllegalArgumentException e) {
+                    		if (e.getMessage().equals("Invalid cookie name-value pair")) {
+                    			List<String> nameValues = Arrays.asList(header.getValue().split(";"));
+                    			String newHeader = "";
+                    			for (String nameValue : nameValues) {
+                    				if (!nameValue.contains('=')) {
+                    					newHeader += nameValue + ";";
+                    				}
+                    			}
+                    			if (newHeader.length() > 0) {
+                    				newHeader = newHeader.substring(0, newHeader.length() - 1);
+                    			}
+                    			responseCookies.addAll(HttpCookie.parse(newHeader));
+                    		} else {
+                    			throw e;
+                    		}
+                    	}
                     }
                 }
 
