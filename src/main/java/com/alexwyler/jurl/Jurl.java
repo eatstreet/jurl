@@ -540,7 +540,7 @@ public class Jurl {
                     			List<String> nameValues = Arrays.asList(header.getValue().split(";"));
                     			String newHeader = "";
                     			for (String nameValue : nameValues) {
-                    				if (!nameValue.contains("=")) {
+                    				if (nameValue.contains("=")) {
                     					newHeader += nameValue + ";";
                     				}
                     			}
