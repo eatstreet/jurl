@@ -504,6 +504,8 @@ public class Jurl {
             final HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
             if (followRedirects) {
                 httpClientBuilder.setRedirectStrategy(new FollowAllRedirectStrategy());
+            } else {
+            	httpClientBuilder.setRedirectStrategy(new FollowNoRedirectStrategy());
             }
             final CloseableHttpClient httpClient = httpClientBuilder
                     .build();
@@ -655,6 +657,14 @@ public class Jurl {
         @Override
         protected boolean isRedirectable(String method) {
             return true;
+        }
+    }
+    
+    @Contract(threading = ThreadingBehavior.IMMUTABLE)
+    private static class FollowNoRedirectStrategy extends DefaultRedirectStrategy {
+        @Override
+        protected boolean isRedirectable(String method) {
+            return false;
         }
     }
 }
