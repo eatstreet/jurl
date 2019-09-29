@@ -245,14 +245,14 @@ public class Jurl {
 
     public List<String> getRequestHeaders(String header) {
         return requestHeaders.stream()
-                .filter((pair) -> pair.getName().equals(header))
+                .filter((pair) -> pair.getName().equalsIgnoreCase(header))
                 .map(NameValuePair::getValue)
                 .collect(Collectors.toList());
     }
 
     public String getRequestHeader(String header) {
         return requestHeaders.stream()
-                .filter((pair) -> pair.getName().equals(header))
+                .filter((pair) -> pair.getName().equalsIgnoreCase(header))
                 .findFirst()
                 .map(NameValuePair::getValue)
                 .orElse(null);
@@ -424,7 +424,7 @@ public class Jurl {
     public List<String> getResponseHeaders(String header) {
         assertGone();
         return responseHeaders.stream()
-                .filter((pair) -> pair.getName().equals(header))
+                .filter((pair) -> pair.getName().equalsIgnoreCase(header))
                 .map(NameValuePair::getValue)
                 .collect(Collectors.toList());
     }
@@ -432,7 +432,7 @@ public class Jurl {
     public String getResponseHeader(String header) {
         assertGone();
         return responseHeaders.stream()
-                .filter((pair) -> pair.getName().equals(header))
+                .filter((pair) -> pair.getName().equalsIgnoreCase(header))
                 .findFirst()
                 .map(NameValuePair::getValue)
                 .orElse(null);
