@@ -556,7 +556,7 @@ public class Jurl {
                 if (!requestCookies.isEmpty()) {
                     httpRequest.setHeader("Cookie", getCookieString());
                 }
-                httpRequest.setHeader("Accept", "application/json");
+                httpRequest.setHeader("Accept", "*/*");
                 httpRequest.setHeader("Cache-Control", "no-cache");
 
                 if (httpRequest instanceof HttpEntityEnclosingRequest) {
