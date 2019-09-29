@@ -255,7 +255,7 @@ public class Jurl {
                 .filter((pair) -> pair.getName().equals(header))
                 .findFirst()
                 .map(NameValuePair::getValue)
-                .orElseGet(null);
+                .orElse(null);
     }
 
     public ObjectMapper getObjectMapper() {
@@ -435,7 +435,7 @@ public class Jurl {
                 .filter((pair) -> pair.getName().equals(header))
                 .findFirst()
                 .map(NameValuePair::getValue)
-                .orElseGet(null);
+                .orElse(null);
     }
 
     public int getResponseCode() {
@@ -559,7 +559,7 @@ public class Jurl {
                 httpRequest.setHeader("Accept", "*/*");
                 httpRequest.setHeader("Cache-Control", "no-cache");
 
-                if (httpRequest instanceof HttpEntityEnclosingRequest) {
+                if (httpRequest instanceof HttpEntityEnclosingRequest && requestBody != null) {
                     final HttpEntityEnclosingRequest entityRequest = (HttpEntityEnclosingRequest) httpRequest;
                     final StringEntity entity = new StringEntity(requestBody);
                     entityRequest.setEntity(entity);
