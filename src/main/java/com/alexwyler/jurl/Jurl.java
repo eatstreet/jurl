@@ -11,20 +11,30 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpEntityEnclosingRequest;
+import org.apache.http.HttpHost;
 import org.apache.http.NameValuePair;
 import org.apache.http.annotation.Contract;
 import org.apache.http.annotation.ThreadingBehavior;
 import org.apache.http.client.methods.*;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.ssl.TrustStrategy;
 import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
 import java.net.*;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -83,6 +93,8 @@ public class Jurl {
     boolean followRedirects = true;
     ObjectMapper jacksonObjectMapper = DEFAULT_OBJECT_MAPPER;
     XmlMapper jacksonXmlMapper = DEFAULT_XML_MAPPER;
+	String proxyHost;
+	int proxyPort;
 
     /**
      * Returns whether this request type is expected to send a resource in the body.  Namely, if it is PUT, POST, or PATCH.
@@ -99,6 +111,12 @@ public class Jurl {
     public Jurl timeBetweenAttempts(long timeBetweenAttempts) {
         this.timeBetweenAttempts = timeBetweenAttempts;
         return this;
+    }
+    
+    public Jurl proxy(String host, int port) {
+    	this.proxyHost = host;
+    	this.proxyPort = port;
+    	return this;
     }
 
     public Jurl throwOnNon200(boolean throwOnNon200) {
@@ -507,6 +525,25 @@ public class Jurl {
             } else {
             	httpClientBuilder.setRedirectStrategy(new FollowNoRedirectStrategy());
             }
+            
+            if (this.proxyHost != null) {
+            	httpClientBuilder.setProxy(new HttpHost(proxyHost, proxyPort));
+                SSLContextBuilder builder = new SSLContextBuilder();
+                try {
+    				builder.loadTrustMaterial(null, new TrustStrategy() {
+    					@Override
+    					public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+    						return true;
+    					}
+    				});
+    				SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
+    				        builder.build());
+    				 httpClientBuilder.setSSLSocketFactory(sslsf).setSSLContext(builder.build());
+    			} catch (Exception e) {
+    				throw new RuntimeException(e);
+    			}
+            }
+           
             final CloseableHttpClient httpClient = httpClientBuilder
                     .build();
             try {
