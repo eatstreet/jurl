@@ -559,15 +559,9 @@ public class Jurl {
                 httpRequest.setHeader("Accept", "*/*");
                 httpRequest.setHeader("Cache-Control", "no-cache");
 
-                if (httpRequest instanceof HttpEntityEnclosingRequest) {
-                	String request;
-                	if (requestBody != null) {
-                		request = requestBody;
-                	} else {
-                		request = "";
-                	}
-                    final HttpEntityEnclosingRequest entityRequest = (HttpEntityEnclosingRequest) httpRequest;
-                    final StringEntity entity = new StringEntity(request);
+                if (httpRequest instanceof HttpEntityEnclosingRequest && requestBody != null) {
+                	final HttpEntityEnclosingRequest entityRequest = (HttpEntityEnclosingRequest) httpRequest;
+                    final StringEntity entity = new StringEntity(requestBody);
                     entityRequest.setEntity(entity);
                 }
 
