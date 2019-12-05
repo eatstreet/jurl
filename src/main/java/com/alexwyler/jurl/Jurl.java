@@ -394,6 +394,9 @@ public class Jurl {
 
     public String getResponseBody() {
         assertGone();
+        if (responseBytes == null) {
+        	return null;
+        }
         String charset = "UTF-8";
         if (!getResponseHeaders("content-type").isEmpty()) {
         	for (String responseHeaderValue : getResponseHeaders("content-type")) {
