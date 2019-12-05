@@ -95,6 +95,7 @@ public class Jurl {
     XmlMapper jacksonXmlMapper = DEFAULT_XML_MAPPER;
 	String proxyHost;
 	int proxyPort;
+	byte[] responseBytes;
 
     /**
      * Returns whether this request type is expected to send a resource in the body.  Namely, if it is PUT, POST, or PATCH.
@@ -394,6 +395,11 @@ public class Jurl {
         assertGone();
         return responseBody;
     }
+    
+    public byte[] getResponseBytes() {
+        assertGone();
+        return responseBytes;
+    }
 
     public List<HttpCookie> getResponseCookies() {
         assertGone();
@@ -605,6 +611,7 @@ public class Jurl {
                 HttpEntity responseEntity = response.getEntity();
                 if (responseEntity != null) {
                     responseBody = EntityUtils.toString(responseEntity);
+                    responseBytes = EntityUtils.toByteArray(responseEntity);
                 }
                 response.close();
                 onAfterAttempt();
