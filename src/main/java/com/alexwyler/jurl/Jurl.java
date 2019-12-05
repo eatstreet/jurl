@@ -29,6 +29,7 @@ import org.apache.http.ssl.TrustStrategy;
 import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.*;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -40,6 +41,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -84,7 +86,6 @@ public class Jurl {
     List<NameValuePair> requestCookies = new ArrayList<>();
     List<HttpCookie> responseCookies = new ArrayList<>();
     String requestBody = EMPTY;
-    String responseBody = null;
     int responseCode;
     long timeout = TimeUnit.SECONDS.toMillis(60); // ms
     int maxAttempts = 1;
@@ -341,7 +342,7 @@ public class Jurl {
             return null;
         }
         try {
-            return jacksonObjectMapper.readValue(responseBody, clazz);
+            return jacksonObjectMapper.readValue(getResponseBody(), clazz);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -350,7 +351,7 @@ public class Jurl {
     public Map<String, Object> getResponseJsonMap() {
         assertGone();
         try {
-            return jacksonObjectMapper.readValue(responseBody, new TypeReference<Map<String, Object>>() {
+            return jacksonObjectMapper.readValue(getResponseBody(), new TypeReference<Map<String, Object>>() {
             });
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -360,7 +361,7 @@ public class Jurl {
     public <S> S getResponseJsonObject(TypeReference<S> type) {
         assertGone();
         try {
-            return jacksonObjectMapper.readValue(responseBody, type);
+            return jacksonObjectMapper.readValue(getResponseBody(), type);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -373,7 +374,7 @@ public class Jurl {
         }
         CollectionType listType = jacksonObjectMapper.getTypeFactory().constructCollectionType(List.class, clazz);
         try {
-            return jacksonObjectMapper.readValue(responseBody, listType);
+            return jacksonObjectMapper.readValue(getResponseBody(), listType);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -385,7 +386,7 @@ public class Jurl {
             return null;
         }
         try {
-            return jacksonXmlMapper.readValue(responseBody, clazz);
+            return jacksonXmlMapper.readValue(getResponseBody(), clazz);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -393,7 +394,20 @@ public class Jurl {
 
     public String getResponseBody() {
         assertGone();
-        return responseBody;
+        String charset = "UTF-8";
+        if (!getResponseHeaders("content-type").isEmpty()) {
+        	for (String responseHeaderValue : getResponseHeaders("content-type")) {
+        		if (responseHeaderValue.contains("charset=")) {
+        			charset = responseHeaderValue.split(Pattern.quote("charset="))[1];
+        			break;
+        		}
+        	}
+        }
+        try {
+			return new String(responseBytes, charset);
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
     }
     
     public byte[] getResponseBytes() {
@@ -610,7 +624,6 @@ public class Jurl {
 
                 HttpEntity responseEntity = response.getEntity();
                 if (responseEntity != null) {
-                    responseBody = EntityUtils.toString(responseEntity);
                     responseBytes = EntityUtils.toByteArray(responseEntity);
                 }
                 response.close();
