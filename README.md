@@ -126,6 +126,12 @@ After a request is done, calling `newWithCookies()` will return a new `Jurl` ins
 ### Debugging requests with `curl`
 You can call `.toCurl()` on a `Jurl` instance, it will return a valid unix `curl` command, useful for debugging.
 
+## Building
+
+### Using Maven
+
+```mvn --batch-mode -Dgpg.skip verify```
+
 ## Notes
 - Only UTF-8 encoded character request and response bodies are supported.
 - `param()` calls for POST requests will be x-www-form-urlencoded in the body.
