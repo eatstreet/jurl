@@ -7,28 +7,41 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.CollectionType;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpEntityEnclosingRequest;
+import org.apache.http.HttpHost;
 import org.apache.http.NameValuePair;
 import org.apache.http.annotation.Contract;
 import org.apache.http.annotation.ThreadingBehavior;
 import org.apache.http.client.methods.*;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.apache.http.ssl.TrustStrategy;
 import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.*;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -73,7 +86,6 @@ public class Jurl {
     List<NameValuePair> requestCookies = new ArrayList<>();
     List<HttpCookie> responseCookies = new ArrayList<>();
     String requestBody = EMPTY;
-    String responseBody = null;
     int responseCode;
     long timeout = TimeUnit.SECONDS.toMillis(60); // ms
     int maxAttempts = 1;
@@ -82,6 +94,9 @@ public class Jurl {
     boolean followRedirects = true;
     ObjectMapper jacksonObjectMapper = DEFAULT_OBJECT_MAPPER;
     XmlMapper jacksonXmlMapper = DEFAULT_XML_MAPPER;
+	String proxyHost;
+	int proxyPort;
+	byte[] responseBytes;
 
     /**
      * Returns whether this request type is expected to send a resource in the body.  Namely, if it is PUT, POST, or PATCH.
@@ -98,6 +113,12 @@ public class Jurl {
     public Jurl timeBetweenAttempts(long timeBetweenAttempts) {
         this.timeBetweenAttempts = timeBetweenAttempts;
         return this;
+    }
+    
+    public Jurl proxy(String host, int port) {
+    	this.proxyHost = host;
+    	this.proxyPort = port;
+    	return this;
     }
 
     public Jurl throwOnNon200(boolean throwOnNon200) {
@@ -226,17 +247,17 @@ public class Jurl {
 
     public List<String> getRequestHeaders(String header) {
         return requestHeaders.stream()
-                .filter((pair) -> pair.getName().equals(header))
+                .filter((pair) -> pair.getName().equalsIgnoreCase(header))
                 .map(NameValuePair::getValue)
                 .collect(Collectors.toList());
     }
 
     public String getRequestHeader(String header) {
         return requestHeaders.stream()
-                .filter((pair) -> pair.getName().equals(header))
+                .filter((pair) -> pair.getName().equalsIgnoreCase(header))
                 .findFirst()
                 .map(NameValuePair::getValue)
-                .orElseGet(null);
+                .orElse(null);
     }
 
     public ObjectMapper getObjectMapper() {
@@ -321,7 +342,7 @@ public class Jurl {
             return null;
         }
         try {
-            return jacksonObjectMapper.readValue(responseBody, clazz);
+            return jacksonObjectMapper.readValue(getResponseBody(), clazz);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -330,7 +351,7 @@ public class Jurl {
     public Map<String, Object> getResponseJsonMap() {
         assertGone();
         try {
-            return jacksonObjectMapper.readValue(responseBody, new TypeReference<Map<String, Object>>() {
+            return jacksonObjectMapper.readValue(getResponseBody(), new TypeReference<Map<String, Object>>() {
             });
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -340,7 +361,7 @@ public class Jurl {
     public <S> S getResponseJsonObject(TypeReference<S> type) {
         assertGone();
         try {
-            return jacksonObjectMapper.readValue(responseBody, type);
+            return jacksonObjectMapper.readValue(getResponseBody(), type);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -353,7 +374,7 @@ public class Jurl {
         }
         CollectionType listType = jacksonObjectMapper.getTypeFactory().constructCollectionType(List.class, clazz);
         try {
-            return jacksonObjectMapper.readValue(responseBody, listType);
+            return jacksonObjectMapper.readValue(getResponseBody(), listType);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -365,7 +386,7 @@ public class Jurl {
             return null;
         }
         try {
-            return jacksonXmlMapper.readValue(responseBody, clazz);
+            return jacksonXmlMapper.readValue(getResponseBody(), clazz);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -373,7 +394,28 @@ public class Jurl {
 
     public String getResponseBody() {
         assertGone();
-        return responseBody;
+        if (responseBytes == null) {
+        	return null;
+        }
+        String charset = "UTF-8";
+        if (!getResponseHeaders("content-type").isEmpty()) {
+        	for (String responseHeaderValue : getResponseHeaders("content-type")) {
+        		if (responseHeaderValue.contains("charset=")) {
+        			charset = responseHeaderValue.split(Pattern.quote("charset="))[1];
+        			break;
+        		}
+        	}
+        }
+        try {
+			return new String(responseBytes, charset);
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
+    }
+    
+    public byte[] getResponseBytes() {
+        assertGone();
+        return responseBytes;
     }
 
     public List<HttpCookie> getResponseCookies() {
@@ -405,7 +447,7 @@ public class Jurl {
     public List<String> getResponseHeaders(String header) {
         assertGone();
         return responseHeaders.stream()
-                .filter((pair) -> pair.getName().equals(header))
+                .filter((pair) -> pair.getName().equalsIgnoreCase(header))
                 .map(NameValuePair::getValue)
                 .collect(Collectors.toList());
     }
@@ -413,10 +455,10 @@ public class Jurl {
     public String getResponseHeader(String header) {
         assertGone();
         return responseHeaders.stream()
-                .filter((pair) -> pair.getName().equals(header))
+                .filter((pair) -> pair.getName().equalsIgnoreCase(header))
                 .findFirst()
                 .map(NameValuePair::getValue)
-                .orElseGet(null);
+                .orElse(null);
     }
 
     public int getResponseCode() {
@@ -503,7 +545,28 @@ public class Jurl {
             final HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
             if (followRedirects) {
                 httpClientBuilder.setRedirectStrategy(new FollowAllRedirectStrategy());
+            } else {
+            	httpClientBuilder.setRedirectStrategy(new FollowNoRedirectStrategy());
             }
+            
+            if (this.proxyHost != null) {
+            	httpClientBuilder.setProxy(new HttpHost(proxyHost, proxyPort));
+                SSLContextBuilder builder = new SSLContextBuilder();
+                try {
+    				builder.loadTrustMaterial(null, new TrustStrategy() {
+    					@Override
+    					public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+    						return true;
+    					}
+    				});
+    				SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
+    				        builder.build());
+    				 httpClientBuilder.setSSLSocketFactory(sslsf).setSSLContext(builder.build());
+    			} catch (Exception e) {
+    				throw new RuntimeException(e);
+    			}
+            }
+           
             final CloseableHttpClient httpClient = httpClientBuilder
                     .build();
             try {
@@ -516,12 +579,18 @@ public class Jurl {
                 if (!requestCookies.isEmpty()) {
                     httpRequest.setHeader("Cookie", getCookieString());
                 }
-                httpRequest.setHeader("Accept", "application/json");
+                httpRequest.setHeader("Accept", "*/*");
                 httpRequest.setHeader("Cache-Control", "no-cache");
 
                 if (httpRequest instanceof HttpEntityEnclosingRequest) {
+                	String request;
+                	if (requestBody != null) {
+                		request = requestBody;
+                	} else {
+                		request = "";
+                	}
                     final HttpEntityEnclosingRequest entityRequest = (HttpEntityEnclosingRequest) httpRequest;
-                    final StringEntity entity = new StringEntity(requestBody);
+                    final StringEntity entity = new StringEntity(request);
                     entityRequest.setEntity(entity);
                 }
 
@@ -532,13 +601,33 @@ public class Jurl {
                     responseHeaders.add(new BasicNameValuePair(header.getName(), header.getValue()));
 
                     if (header.getName().equalsIgnoreCase("Set-Cookie")) {
-                        responseCookies.addAll(HttpCookie.parse(header.getValue()));
+                    	try {
+                    		responseCookies.addAll(HttpCookie.parse(header.getValue()));
+                    	} catch (IllegalArgumentException e) {
+                    		if (e.getMessage().equals("Invalid cookie name-value pair")) {
+                    			List<String> nameValues = Arrays.asList(header.getValue().split(";"));
+                    			String newHeader = "";
+                    			for (String nameValue : nameValues) {
+                    				if (nameValue.contains("=")) {
+                    					newHeader += nameValue + ";";
+                    				}
+                    			}
+                    			if (newHeader.length() > 0) {
+                    				newHeader = newHeader.substring(0, newHeader.length() - 1);
+                    			}
+                                if (newHeader.trim().length() > 0) {
+                                    responseCookies.addAll(HttpCookie.parse(newHeader));
+                                }
+                    		} else {
+                    			throw e;
+                    		}
+                    	}
                     }
                 }
 
                 HttpEntity responseEntity = response.getEntity();
                 if (responseEntity != null) {
-                    responseBody = EntityUtils.toString(responseEntity);
+                    responseBytes = EntityUtils.toByteArray(responseEntity);
                 }
                 response.close();
                 onAfterAttempt();
@@ -634,6 +723,14 @@ public class Jurl {
         @Override
         protected boolean isRedirectable(String method) {
             return true;
+        }
+    }
+    
+    @Contract(threading = ThreadingBehavior.IMMUTABLE)
+    private static class FollowNoRedirectStrategy extends DefaultRedirectStrategy {
+        @Override
+        protected boolean isRedirectable(String method) {
+            return false;
         }
     }
 }
